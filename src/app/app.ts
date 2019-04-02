@@ -111,7 +111,7 @@ function setup() {
 
 
     //socket = new WebSocket("wss://bountywar.herokuapp.com/bountywar");
-    socket = new WebSocket("ws://192.168.2.121:8081/bountywar");
+    socket = new WebSocket("ws://192.168.111.164:8082/bountywar");//bountywar
     socket.binaryType = 'arraybuffer';
     socket.onopen = function () {
 
@@ -123,7 +123,7 @@ function setup() {
 
     socket.onmessage = function (event) {
         var k = new Int8Array(event.data);
-        //console.log('Get Data: '+ k.length);
+        //console.log('Get Data: '+ k);
         incomePoket(k);
         //delete(event);
     };
@@ -151,19 +151,21 @@ function play(delta) {
     particles.forEach(particleUpdate);
     var mousePosition = app.renderer.plugins.interaction.mouse.global;
 
-    if (Keyboard.isKeyDown('ArrowLeft', 'KeyA')){
-        world.scale.x -= 0.1;
-        world.scale.y -= 0.1;
+    if (Keyboard.isKeyDown('ArrowLeft', 'KeyQ')){
+        world.scale.x -= 0.03;
+        world.scale.y -= 0.03;
     }
-    if (Keyboard.isKeyDown('ArrowRight', 'KeyD')) {
-        world.scale.x += 0.1;
-        world.scale.y += 0.1;
+    if (Keyboard.isKeyDown('ArrowRight', 'KeyE')) {
+        world.scale.x += 0.03;
+        world.scale.y += 0.03;
     }
 
     world.pivot.set(player.body.x,player.body.y);
     //world.rotation = -player.body.rotation;
     if (iD !== undefined && socket.readyState === 1)
         generateButtonProtocol(mousePosition.x, mousePosition.y);
+
+    //console.log("socket.readyState:"+socket.readyState+"   outPocket.length:" + outPocket.length);
     if (socket.readyState === 1 && outPocket.length > 0){
         let arr = new Int8Array(outPocket);
         socket.send(arr.buffer);
@@ -209,7 +211,10 @@ function incomePoket(pocket) {
             i += 15;
         } else if(pocket[i] === 2){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
-            objects["" + id].changeTower(pocket[i+5]);
+            if (objects["" + id] === undefined) {
+            } else {
+                objects["" + id].changeTower(pocket[i + 5]);
+            }
             i += 6;
         } else if (pocket[i] === 3){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
@@ -225,8 +230,11 @@ function incomePoket(pocket) {
             i += 14;
         } else if (pocket[i] === 4){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
-            world.removeChild(objects["" + id].body);
-            delete objects["" + id];
+            if (objects["" + id] === undefined) {
+            } else {
+                world.removeChild(objects["" + id].body);
+                delete objects["" + id];
+            }
             i += 5;
         } else if (pocket[i] === 12){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
@@ -251,7 +259,7 @@ function incomePoket(pocket) {
             i += 1025;
             //console.log("14");
         } else {
-            alert("Illegal Data From Server!!!");
+            //console.log("Illegal Data From Server!!!");
             break;
         }
     }
@@ -276,7 +284,7 @@ function toIntSoft(byte){
 }
 
 function getCoord(byte1, byte2, byte3){
-    return toInt(byte1)*1024 + toInt(byte2)*64 + toInt(byte3)/4.0;
+    return toInt(byte1)*2048 + toInt(byte2)*64 + toInt(byte3)/4.0;
 }
 
 function getRadians(byte1, byte2){
