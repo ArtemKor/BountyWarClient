@@ -296,6 +296,13 @@ function addRadiansToByteArray(rad, arr){
     arr.push(~~((rad%1.0)*100));
 }
 
+function addMouseToByteArray(x, y, arr){
+    arr.push(~~(x%256));
+    arr.push(~~(x/256));
+    arr.push(~~(y%256));
+    arr.push(~~(y/256));
+}
+
 
 function generateButtonProtocol(mouseX, mouseY) {
     outPocket.push(6);
@@ -313,14 +320,17 @@ function generateButtonProtocol(mouseX, mouseY) {
 
 
     outPocket.push(l);
-    let r = player.getTowerRotate(mouseX, mouseY);
+    let x = mouseX - width;
+    let y = mouseY - height;
+    //let r = player.getTowerRotate(mouseX, mouseY);
     /*while(r > Math.PI*2 || r < Math.PI*-2){
         if(r > Math.PI*2)
             r -= Math.PI*2;
         else if(r < Math.PI*-2)
             r += Math.PI*2;
     }*/
-    addRadiansToByteArray(r, outPocket);
+    //addRadiansToByteArray(r, outPocket);
+    addMouseToByteArray(x, y, outPocket);
 }
 
 
