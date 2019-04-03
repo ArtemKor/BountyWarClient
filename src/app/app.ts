@@ -297,10 +297,10 @@ function addRadiansToByteArray(rad, arr){
 }
 
 function addMouseToByteArray(x, y, arr){
-    arr.push(~~(x%256));
     arr.push(~~(x/256));
-    arr.push(~~(y%256));
+    arr.push(~~(x%256));
     arr.push(~~(y/256));
+    arr.push(~~(y%256));
 }
 
 
@@ -320,8 +320,8 @@ function generateButtonProtocol(mouseX, mouseY) {
 
 
     outPocket.push(l);
-    let x = mouseX - width;
-    let y = mouseY - height;
+    let x = mouseX - width + 32768;
+    let y = mouseY - height + 32768;
     //let r = player.getTowerRotate(mouseX, mouseY);
     /*while(r > Math.PI*2 || r < Math.PI*-2){
         if(r > Math.PI*2)
