@@ -202,13 +202,15 @@ function incomePoket(pocket) {
                 outPocket.push(pocket[i+3]);
                 outPocket.push(pocket[i+4]);
             }
-            objects["" + id].body.x = getCoord(pocket[i+5], pocket[i+6], pocket[i+7]);
-            //console.log("bytes:// " + pocket[i+5] + "," + pocket[i+6] + "," + pocket[i+7]);
-            //console.log("ws://" + objects["" + id].body.x);
-            objects["" + id].body.y = getCoord(pocket[i+8], pocket[i+9], pocket[i+10]);
-            objects["" + id].body.rotation = getRadians(pocket[i+11], pocket[i+12]);
-            objects["" + id].tower.rotation = getRadians(pocket[i+13], pocket[i+14]) - objects["" + id].body.rotation;
-            i += 15;
+            if (pocket[i+5] === 6) {
+                objects["" + id].body.x = getCoord(pocket[i + 6], pocket[i + 7], pocket[i + 8]);
+                //console.log("bytes:// " + pocket[i+5] + "," + pocket[i+6] + "," + pocket[i+7]);
+                //console.log("ws://" + objects["" + id].body.x);
+                objects["" + id].body.y = getCoord(pocket[i + 9], pocket[i + 10], pocket[i + 11]);
+                objects["" + id].body.rotation = getRadians(pocket[i + 12], pocket[i + 13]);
+                objects["" + id].tower.rotation = getRadians(pocket[i + 14], pocket[i + 15]) - objects["" + id].body.rotation;
+                i += 16;
+            }
         } else if(pocket[i] === 2){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
             if (objects["" + id] === undefined) {
