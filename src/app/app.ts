@@ -1,6 +1,17 @@
 import * as PIXI from 'pixi.js';
+import Mouse from 'pixi.js-mouse';
 import Keyboard from 'pixi.js-keyboard';
-import * as Mouse from 'pixi.js-mouse';
+
+var cnX = new PIXI.Text("X:")
+var cnY = new PIXI.Text("Y:")
+
+var currentScreen = 0;
+
+var CellSize   = 64;
+var ChunkSize  = 4;
+var WorldSize  = 3;
+var CellMulty  = 256.0 / CellSize;
+var ChunkMulty = CellSize * ChunkSize;
 
 var width = window.innerWidth/2;
 var height = window.innerHeight/2;
@@ -52,7 +63,8 @@ app = new Application({
 });
 
 document.body.appendChild(app.view);
-
+app.view.addEventListener("contextmenu", (e) => e.preventDefault());
+// Mouse.init();
 
 PIXI.loader
     .add("assets/map2.png")
@@ -68,8 +80,6 @@ PIXI.loader
 
 function setup() {
 
-    world = new Sprite(emptyTexture);
-    let spriteL = new Sprite(resources["assets/map2.png"].texture);
 
     groundObjectTextures[1] = new PIXI.Texture(resources["assets/ground_object.png"].texture.baseTexture, new Rectangle(0, 0, 96, 96));
     //let spriteW = new Sprite(resources["assets/ground_object.png"].texture);
@@ -98,20 +108,12 @@ function setup() {
     boxTextures[0] = new PIXI.Texture(resources["assets/box.png"].texture.baseTexture, new Rectangle(0, 0, 64, 64));
     boxTextures[1] = new PIXI.Texture(resources["assets/box.png"].texture.baseTexture, new Rectangle(64, 0, 64, 64));
 
-    app.stage.addChild(world);
-    world.x = width;
-    world.y = height;
-    world.addChild(spriteL);
-    spriteL.x = -32;
-    spriteL.y = -32;
-
     app.ticker.add(delta => gameLoop(delta));
-    player = getGameObject(0);
     //console.log("ws://" + location.hostname + ":" + location.port);
 
 
     //socket = new WebSocket("wss://bountywar.herokuapp.com/bountywar");
-    socket = new WebSocket("ws://192.168.111.164:8082/bountywar");//bountywar
+    socket = new WebSocket("ws://192.168.0.146:8082/bountywar");//bountywar
     socket.binaryType = 'arraybuffer';
     socket.onopen = function () {
 
@@ -123,7 +125,7 @@ function setup() {
 
     socket.onmessage = function (event) {
         var k = new Int8Array(event.data);
-        //console.log('Get Data: '+ k);
+        // console.log('Get Data: '+ k);
         incomePoket(k);
         //delete(event);
     };
@@ -131,20 +133,102 @@ function setup() {
     socket.onerror = function (error) {
         alert("Disconnected !!!");
     };
+    startMenue()
+}
 
+function startProcess() {
+    app.stage.removeChild(world);
+    world = new Sprite(emptyTexture);
+    let spriteL = new Sprite(resources["assets/map2.png"].texture);
+    app.stage.addChild(world);
+    world.x = width;
+    world.y = height;
+    world.addChild(spriteL);
+    spriteL.x = -32;
+    spriteL.y = -32;
+    debugger
+    if (player === undefined) {
+        player = getGameObject(6)
+    } else {
+        world.addChild(player.body);
+    }
+    player.body.addChild(cnX);
+    cnX.y = -40;
+    player.body.addChild(cnY);
+    cnY.y = -20;
+
+    console.log(world);
+}
+
+function startMenue() {
+    app.stage.removeChild(world);
+    world = new Sprite(emptyTexture);
+    app.stage.addChild(world);
+    world.x = width;
+    world.y = height;
+    let txs = new PIXI.TextStyle({
+        fontFamily: 'Arial',
+        fontSize: 36,
+        fontStyle: 'italic',
+        fontWeight: 'bold',
+        fill: ['#ffffff', '#00ff99'], // gradient
+        stroke: '#4a1850',
+        strokeThickness: 5,
+        dropShadow: true,
+        dropShadowColor: '#000000',
+        dropShadowBlur: 4,
+        dropShadowAngle: Math.PI / 6,
+        dropShadowDistance: 6,
+        wordWrap: true,
+        wordWrapWidth: 440
+    })
+    let tx = new PIXI.Text("Create new Tank", txs)
+    world.addChild(tx);
+    tx.x = 0;
+    tx.y = 0;
 }
 
 function gameLoop(delta) {
     deltaTime = Date.now() - currentTime;
     currentTime = Date.now();
     Keyboard.update();
-    //Mouse.update();
-    play(deltaTime);
+    Mouse.update();
+    if (currentScreen === 1) {
+        play(deltaTime);
+    } else if (currentScreen === 0) {
+        menue(deltaTime);
+    }
+}
+
+function menue(delta) {
+    if (Keyboard.isKeyDown('Enter')){
+        let out = [];
+        out.push(1);
+        out.push(6);
+        let arr = new Int8Array(out);
+        socket.send(arr.buffer);
+    }
+    if (iD != undefined){
+        startProcess();
+        currentScreen = 1
+    }
 }
 
 function play(delta) {
 
-    //console.log(delta);
+    // console.log(Mouse.getPosX());
+    if (Mouse.isButtonDown(Mouse.Button.LEFT))
+        console.log("LEFT");
+    if (Mouse.isButtonDown(Mouse.Button.RIGHT))
+        console.log("RIGHT");
+    if (Mouse.isButtonDown(Mouse.Button.MIDDLE))
+        console.log("MIDDLE");
+    if (Mouse.isButtonDown(Mouse.Button.FOURTH))
+        console.log("FOURTH");
+    if (Mouse.isButtonDown(Mouse.Button.FIFTH))
+        console.log("FIFTH");
+    cnX.text = "X: "+ player.body.x/ChunkMulty
+    cnY.text = "Y: "+ player.body.y/ChunkMulty
     //console.log('Game Update');
     boxes.forEach(boxUpdate);
     ammos.forEach(ammoUpdate);
@@ -160,6 +244,7 @@ function play(delta) {
         world.scale.y += 0.03;
     }
 
+
     world.pivot.set(player.body.x,player.body.y);
     //world.rotation = -player.body.rotation;
     if (iD !== undefined && socket.readyState === 1)
@@ -170,10 +255,10 @@ function play(delta) {
         let arr = new Int8Array(outPocket);
         socket.send(arr.buffer);
         // @ts-ignore
-        arr = null
+        arr = null;
         //delete arr;
         // @ts-ignore
-        outPocket = null
+        outPocket = null;
         //delete outPocket;
         outPocket = [];
     }
@@ -185,6 +270,8 @@ function incomePoket(pocket) {
         if(pocket[i] === 0){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
             iD = "" + id;
+            // console.log('Ressive ID: '+ id);
+            player = getGameObject(6);
             objects["" + id] = player;
             outPocket.push(5);
             outPocket.push(pocket[i+1]);
@@ -195,7 +282,7 @@ function incomePoket(pocket) {
         } else if(pocket[i] === 1){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
             if (objects["" + id] === undefined) {
-                objects["" + id] = getGameObject(0);
+                objects["" + id] = getGameObject(6);
                 outPocket.push(5);
                 outPocket.push(pocket[i+1]);
                 outPocket.push(pocket[i+2]);
@@ -203,16 +290,19 @@ function incomePoket(pocket) {
                 outPocket.push(pocket[i+4]);
             }
             if (pocket[i+5] === 6) {
+                //console.log('Ressive Position: '+ id);
                 objects["" + id].body.x = getCoord(pocket[i + 6], pocket[i + 7], pocket[i + 8]);
                 //console.log("bytes:// " + pocket[i+5] + "," + pocket[i+6] + "," + pocket[i+7]);
                 //console.log("ws://" + objects["" + id].body.x);
                 objects["" + id].body.y = getCoord(pocket[i + 9], pocket[i + 10], pocket[i + 11]);
                 objects["" + id].body.rotation = getRadians(pocket[i + 12], pocket[i + 13]);
                 objects["" + id].tower.rotation = getRadians(pocket[i + 14], pocket[i + 15]) - objects["" + id].body.rotation;
+                //console.log('Ressive Position: '+ id);
                 i += 16;
             }
         } else if(pocket[i] === 2){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
+            // console.log('Ressive Vision: '+ id);
             if (objects["" + id] === undefined) {
             } else {
                 objects["" + id].changeTower(pocket[i + 5]);
@@ -233,6 +323,11 @@ function incomePoket(pocket) {
         } else if (pocket[i] === 4){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
             if (objects["" + id] === undefined) {
+            } else if (iD === "" + id ) {
+                objects = {};
+                app.stage.removeChild(world);
+                startMenue();
+                currentScreen = 0;
             } else {
                 world.removeChild(objects["" + id].body);
                 delete objects["" + id];
@@ -286,7 +381,7 @@ function toIntSoft(byte){
 }
 
 function getCoord(byte1, byte2, byte3){
-    return toInt(byte1)*2048 + toInt(byte2)*64 + toInt(byte3)/4.0;
+    return toInt(byte1)*ChunkMulty + toInt(byte2)*CellSize + toInt(byte3)/CellMulty;
 }
 
 function getRadians(byte1, byte2){
@@ -321,6 +416,7 @@ function generateButtonProtocol(mouseX, mouseY) {
         l+=16;
 
 
+
     outPocket.push(l);
     let x = mouseX - width + 32768;
     let y = mouseY - height + 32768;
@@ -337,7 +433,7 @@ function generateButtonProtocol(mouseX, mouseY) {
 
 
 function getGameObject(type) {
-    if (type === 0)
+    if (type === 6)
         return getTank(0);
     return {};
 }
