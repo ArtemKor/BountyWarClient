@@ -2,14 +2,19 @@ import * as PIXI from 'pixi.js';
 import Mouse from 'pixi.js-mouse';
 import Keyboard from 'pixi.js-keyboard';
 
-var cnX = new PIXI.Text("X:")
-var cnY = new PIXI.Text("Y:")
+// var cnX = new PIXI.Text("X:")
+// var cnY = new PIXI.Text("Y:")
 
 var currentScreen = 0;
 
+var tx;
 var CellSize   = 64;
-var ChunkSize  = 4;
+var ChunkSize  = 8;
 var WorldSize  = 3;
+var WorldGround = [];
+for(let i = 0; i < WorldSize+2; i++){
+    WorldGround[i] = [];
+}
 var CellMulty  = 256.0 / CellSize;
 var ChunkMulty = CellSize * ChunkSize;
 
@@ -21,7 +26,10 @@ var deltaTime;
 var outPocket = [];
 
 var world;
+var worldGroundLayer;
+var worldObjectLayer;
 var emptyTexture;
+var groundTextures = [];
 var groundObjectTextures = [];
 var groundObject = new Array(32);
 for(let i = 0; i < 32; i++){
@@ -75,10 +83,58 @@ PIXI.loader
     .add("assets/tank_ammo_splash.png")
     .add("assets/box.png")
     .add("assets/particle.png")
+    .add("assets/G.png")
+    .add("assets/G_C.png")
+    .add("assets/G_Waste.png")
     .load(setup);
 
 
 function setup() {
+
+    groundTextures[0] = new PIXI.Texture(resources["assets/G.png"].texture.baseTexture, new Rectangle(0, 0, 64, 64));
+    groundTextures[1] = [];
+    groundTextures[1][0] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(64, 128, 32, 32));// 0 - all
+    groundTextures[1][1] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(32, 128, 32, 32));
+    groundTextures[1][2] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(32, 96, 32, 32));
+    groundTextures[1][3] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(64, 96, 32, 32));
+    groundTextures[1][4] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(64, 64, 32, 32));// 4 - gor
+    groundTextures[1][5] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(32, 64, 32, 32));
+    groundTextures[1][6] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(32, 160, 32, 32));
+    groundTextures[1][7] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(64, 160, 32, 32));
+    groundTextures[1][8] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(0, 128, 32, 32));// 8 - ver
+    groundTextures[1][9] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(96, 128, 32, 32));
+    groundTextures[1][10] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(96, 96, 32, 32));
+    groundTextures[1][11] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(0, 96, 32, 32));
+    groundTextures[1][12] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(0, 0, 32, 32)); // 12 - out corner
+    groundTextures[1][13] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(32, 0, 32, 32));
+    groundTextures[1][14] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(32, 32, 32, 32));
+    groundTextures[1][15] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(0, 32, 32, 32));
+    groundTextures[1][16] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(64, 0, 32, 32)); // 16 - inner corner
+    groundTextures[1][17] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(96, 0, 32, 32));
+    groundTextures[1][18] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(96, 32, 32, 32));
+    groundTextures[1][19] = new PIXI.Texture(resources["assets/G_C.png"].texture.baseTexture, new Rectangle(64, 32, 32, 32));
+    groundTextures[2] = [];
+    groundTextures[2][0] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(64, 128, 32, 32));// 0 - all
+    groundTextures[2][1] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(32, 128, 32, 32));
+    groundTextures[2][2] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(32, 96, 32, 32));
+    groundTextures[2][3] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(64, 96, 32, 32));
+    groundTextures[2][4] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(64, 64, 32, 32));// 4 - gor
+    groundTextures[2][5] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(32, 64, 32, 32));
+    groundTextures[2][6] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(32, 160, 32, 32));
+    groundTextures[2][7] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(64, 160, 32, 32));
+    groundTextures[2][8] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(0, 128, 32, 32));// 8 - ver
+    groundTextures[2][9] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(96, 128, 32, 32));
+    groundTextures[2][10] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(96, 96, 32, 32));
+    groundTextures[2][11] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(0, 96, 32, 32));
+    groundTextures[2][12] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(0, 0, 32, 32)); // 12 - out corner
+    groundTextures[2][13] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(32, 0, 32, 32));
+    groundTextures[2][14] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(32, 32, 32, 32));
+    groundTextures[2][15] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(0, 32, 32, 32));
+    groundTextures[2][16] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(64, 0, 32, 32)); // 16 - inner corner
+    groundTextures[2][17] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(96, 0, 32, 32));
+    groundTextures[2][18] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(96, 32, 32, 32));
+    groundTextures[2][19] = new PIXI.Texture(resources["assets/G_Waste.png"].texture.baseTexture, new Rectangle(64, 32, 32, 32));
+
 
 
     groundObjectTextures[1] = new PIXI.Texture(resources["assets/ground_object.png"].texture.baseTexture, new Rectangle(0, 0, 96, 96));
@@ -112,6 +168,21 @@ function setup() {
     //console.log("ws://" + location.hostname + ":" + location.port);
 
 
+    // let chunk:any = {};
+    // chunk.data = [];
+    // for(let i = 0; i < ChunkSize; i++) {
+    //     chunk.data[i] = [];
+    // }
+    //
+    // chunk.data[0][2] = 5;
+    // chunk.data[1][1] = 5;
+    //
+    // let t = chunk.data[0][2];
+    // console.log(t);
+    // t = chunk.data[1][1];
+    // console.log(t);
+
+
     //socket = new WebSocket("wss://bountywar.herokuapp.com/bountywar");
     socket = new WebSocket("ws://192.168.0.146:8082/bountywar");//bountywar
     socket.binaryType = 'arraybuffer';
@@ -139,30 +210,37 @@ function setup() {
 function startProcess() {
     app.stage.removeChild(world);
     world = new Sprite(emptyTexture);
-    let spriteL = new Sprite(resources["assets/map2.png"].texture);
+    // worldGroundLayer = new Sprite(emptyTexture);
+    // worldObjectLayer = new Sprite(emptyTexture);
+    world.addChild(worldGroundLayer);
+    world.addChild(worldObjectLayer);
+
+    // let spriteL = new Sprite(resources["assets/map2.png"].texture);
     app.stage.addChild(world);
     world.x = width;
     world.y = height;
-    world.addChild(spriteL);
-    spriteL.x = -32;
-    spriteL.y = -32;
-    debugger
+    // world.addChild(spriteL);
+    // spriteL.x = -32;
+    // spriteL.y = -32;
+
     if (player === undefined) {
         player = getGameObject(6)
     } else {
-        world.addChild(player.body);
+        worldObjectLayer.addChild(player.body);
     }
-    player.body.addChild(cnX);
-    cnX.y = -40;
-    player.body.addChild(cnY);
-    cnY.y = -20;
+    // player.body.addChild(cnX);
+    // cnX.y = -40;
+    // player.body.addChild(cnY);
+    // cnY.y = -20;
 
-    console.log(world);
+    //console.log(world);
 }
 
 function startMenue() {
     app.stage.removeChild(world);
     world = new Sprite(emptyTexture);
+    worldGroundLayer = new Sprite(emptyTexture);
+    worldObjectLayer = new Sprite(emptyTexture);
     app.stage.addChild(world);
     world.x = width;
     world.y = height;
@@ -182,7 +260,7 @@ function startMenue() {
         wordWrap: true,
         wordWrapWidth: 440
     })
-    let tx = new PIXI.Text("Create new Tank", txs)
+    tx = new PIXI.Text("Create new Tank", txs)
     world.addChild(tx);
     tx.x = 0;
     tx.y = 0;
@@ -217,18 +295,18 @@ function menue(delta) {
 function play(delta) {
 
     // console.log(Mouse.getPosX());
-    if (Mouse.isButtonDown(Mouse.Button.LEFT))
-        console.log("LEFT");
-    if (Mouse.isButtonDown(Mouse.Button.RIGHT))
-        console.log("RIGHT");
-    if (Mouse.isButtonDown(Mouse.Button.MIDDLE))
-        console.log("MIDDLE");
-    if (Mouse.isButtonDown(Mouse.Button.FOURTH))
-        console.log("FOURTH");
-    if (Mouse.isButtonDown(Mouse.Button.FIFTH))
-        console.log("FIFTH");
-    cnX.text = "X: "+ player.body.x/ChunkMulty
-    cnY.text = "Y: "+ player.body.y/ChunkMulty
+    // if (Mouse.isButtonDown(Mouse.Button.LEFT))
+    //     console.log("LEFT");
+    // if (Mouse.isButtonDown(Mouse.Button.RIGHT))
+    //     console.log("RIGHT");
+    // if (Mouse.isButtonDown(Mouse.Button.MIDDLE))
+    //     console.log("MIDDLE");
+    // if (Mouse.isButtonDown(Mouse.Button.FOURTH))
+    //     console.log("FOURTH");
+    // if (Mouse.isButtonDown(Mouse.Button.FIFTH))
+    //     console.log("FIFTH");
+    // cnX.text = "X: "+ player.body.x/ChunkMulty
+    // cnY.text = "Y: "+ player.body.y/ChunkMulty
     //console.log('Game Update');
     boxes.forEach(boxUpdate);
     ammos.forEach(ammoUpdate);
@@ -329,21 +407,21 @@ function incomePoket(pocket) {
                 startMenue();
                 currentScreen = 0;
             } else {
-                world.removeChild(objects["" + id].body);
+                worldObjectLayer.removeChild(objects["" + id].body);
                 delete objects["" + id];
             }
             i += 5;
         } else if (pocket[i] === 12){
             let id = getID(pocket[i+1], pocket[i+2], pocket[i+3], pocket[i+4]);
             if (objects["" + id] !== undefined) {
-                world.removeChild(objects["" + id].sprite);
+                worldObjectLayer.removeChild(objects["" + id].sprite);
                 objects["" + id].live = 0;
                 objects["" + id].splash(getCoord(pocket[i+5], pocket[i+6], pocket[i+7]), getCoord(pocket[i+8], pocket[i+9], pocket[i+10]));
                 delete objects["" + id];
             }
             i += 11;
         } else if (pocket[i] === 14){
-            for(let p = 0; p < 1024; p++){
+            /*for(let p = 0; p < 1024; p++){
                 if(pocket[i+p+1] === 1){
                     let kx = (p%32);
                     let ky = ~~(p/32);
@@ -353,7 +431,10 @@ function incomePoket(pocket) {
                     world.addChild(groundObject[kx][ky]);
                 }
             }
-            i += 1025;
+            i += 1025;*/
+            generateGround(i, pocket);
+            i += 3;
+            i += ChunkSize*ChunkSize;
             //console.log("14");
         } else {
             //console.log("Illegal Data From Server!!!");
@@ -363,6 +444,225 @@ function incomePoket(pocket) {
     // @ts-ignore
     pocket = null
     //delete pocket;
+}
+
+function drawCell(nx, ny, Cxx, Cyy, t, container) {
+    if (t === 0) {
+        let sp = new PIXI.Sprite(groundTextures[0]);
+        sp.x = 64 * nx;
+        sp.y = 64 * ny;
+        container.addChild(sp)
+    } else if (t === 1 || t === 2) {
+        let k0 = false;
+        let k1 = false;
+        let k2 = false;
+        let k3 = false;
+
+        let k5 = false;
+        let k6 = false;
+        let k7 = false;
+        let k8 = false;
+        let p = getCell(nx + Cxx - 1, ny + Cyy - 1);
+        if (p === t) {
+            k0 = true
+        }
+        p = getCell(nx + Cxx, ny + Cyy - 1);
+        if (p === t) {
+            k1 = true
+        }
+        p = getCell(nx + Cxx + 1, ny + Cyy - 1);
+        if (p === t) {
+            k2 = true
+        }
+        p = getCell(nx + Cxx - 1, ny + Cyy);
+        if (p === t) {
+            k3 = true
+        }
+        p = getCell(nx + Cxx + 1, ny + Cyy);
+        if (p === t) {
+            k5 = true
+        }
+        p = getCell(nx + Cxx - 1, ny + Cyy + 1);
+        if (p === t) {
+            k6 = true
+        }
+        p = getCell(nx + Cxx, ny + Cyy + 1);
+        if (p === t) {
+            k7 = true
+        }
+        p = getCell(nx + Cxx + 1, ny + Cyy + 1);
+        if (p === t) {
+            k8 = true
+        }
+
+        let d = 0;
+        if (k0 && k1 && k3)
+            d = 0;
+        else if (!k0 && k1 && k3)
+            d = 4;
+        else if (!k1 && k3)
+            d = 1;
+        else if (k1 && !k3)
+            d = 2;
+        else if (!k1 && !k3)
+            d = 3;
+        let sp = new PIXI.Sprite(groundTextures[t][d * 4]);
+        sp.x = 64 * nx;
+        sp.y = 64 * ny;
+        container.addChild(sp)
+
+        if (k2 && k1 && k5)
+            d = 0;
+        else if (!k2 && k1 && k5)
+            d = 4;
+        else if (!k1 && k5)
+            d = 1;
+        else if (k1 && !k5)
+            d = 2;
+        else if (!k1 && !k5)
+            d = 3;
+        sp = new PIXI.Sprite(groundTextures[t][1 + d * 4]);
+        sp.x = 64 * nx + 32;
+        sp.y = 64 * ny;
+        container.addChild(sp)
+
+        if (k8 && k7 && k5)
+            d = 0;
+        else if (!k8 && k7 && k5)
+            d = 4;
+        else if (!k7 && k5)
+            d = 1;
+        else if (k7 && !k5)
+            d = 2;
+        else if (!k7 && !k5)
+            d = 3;
+        sp = new PIXI.Sprite(groundTextures[t][2 + d * 4]);
+        sp.x = 64 * nx + 32;
+        sp.y = 64 * ny + 32;
+        container.addChild(sp)
+
+        if (k6 && k7 && k3)
+            d = 0;
+        else if (!k6 && k7 && k3)
+            d = 4;
+        else if (!k7 && k3)
+            d = 1;
+        else if (k7 && !k3)
+            d = 2;
+        else if (!k7 && !k3)
+            d = 3;
+        sp = new PIXI.Sprite(groundTextures[t][3 + d * 4]);
+        sp.x = 64 * nx;
+        sp.y = 64 * ny + 32;
+        container.addChild(sp)
+    }
+}
+
+function updateGround(Cx, Cy){
+
+    let chunks = WorldGround[Cx];
+    if (chunks === undefined)
+        return;
+    // console.log("Cy: " + Cy)
+    let chunk = chunks[Cy];
+    if (chunk === undefined)
+        return;
+
+    let container = new PIXI.Container();
+
+    let Cxx = Cx * ChunkSize;
+    let Cyy = Cy * ChunkSize;
+    // console.log("Cxx: " + Cxx + "   Cyy: " + Cyy);
+    for(let nx = 0; nx < ChunkSize; nx++){
+        for(let ny = 0; ny < ChunkSize; ny++){
+            // if (nx === 0 || nx === ChunkSize-1 || ny === 0 || ny === ChunkSize-1) {
+                let t = chunk.data[nx][ny];
+                // console.log(nx + ", " + ny)
+                // console.log(t)
+                drawCell(nx, ny, Cxx, Cyy, t, container)
+            // }
+        }
+    }
+    app.renderer.render(container, chunk.rt);
+}
+
+function generateGround(shift, arr){
+    let Cx = arr[shift+1];
+    let Cy = arr[shift+2];
+    let brt = new PIXI.BaseRenderTexture(ChunkMulty, ChunkMulty, PIXI.SCALE_MODES.LINEAR, 1);
+    let rt = new PIXI.RenderTexture(brt);
+    let container = new PIXI.Container();
+    let chunk:any = {};
+    chunk.sprite = new PIXI.Sprite(rt);
+    chunk.rt = rt;
+    chunk.sprite.x = Cx * ChunkMulty;
+    chunk.sprite.y = Cy * ChunkMulty;
+    chunk.data = [];
+    for(let i = 0; i < ChunkSize; i++) {
+        chunk.data[i] = [];
+    }
+    for(let i = 0; i < ChunkSize*ChunkSize; i++){
+        let n = arr[shift + 3 + i];
+        // console.log(n);
+        let x = i % ChunkSize;
+        let y = ~~(i / ChunkSize);
+        // console.log(x + ", " + y)
+        chunk.data[x][y] = n
+    }
+
+
+    if (WorldGround[Cx][Cy] != undefined) {
+        worldGroundLayer.removeChild(WorldGround[Cx][Cy].sprite)
+    }
+    WorldGround[Cx][Cy] = chunk;
+    worldGroundLayer.addChild(WorldGround[Cx][Cy].sprite)
+
+
+    let Cxx = Cx * ChunkSize;
+    let Cyy = Cy * ChunkSize;
+    // console.log("Cxx: " + Cxx + "   Cyy: " + Cyy);
+    for(let nx = 0; nx < ChunkSize; nx++){
+        for(let ny = 0; ny < ChunkSize; ny++){
+            let t = chunk.data[nx][ny];
+            // console.log(nx + ", " + ny)
+            // console.log(t)
+            drawCell(nx, ny, Cxx, Cyy, t, container)
+        }
+    }
+
+    app.renderer.render(container, rt);
+
+    updateGround(Cx-1, Cy-1);
+    updateGround(Cx, Cy-1);
+    updateGround(Cx+1, Cy-1);
+    updateGround(Cx-1, Cy);
+    updateGround(Cx+1, Cy);
+    updateGround(Cx-1, Cy+1);
+    updateGround(Cx, Cy+1);
+    updateGround(Cx+1, Cy+1);
+}
+
+function getCell(x, y): number{
+    // console.log("X: " + x + "   Y: " + y)
+    let Cx = ~~(x / ChunkSize);
+    // console.log("Cx: " + Cx)
+    let chunks = WorldGround[Cx];
+    if (chunks === undefined)
+        return;
+    let Cy = ~~(y / ChunkSize);
+    // console.log("Cy: " + Cy)
+    let chunk = chunks[Cy];
+    if (chunk === undefined)
+        return;
+    let nx = x % ChunkSize;
+    // console.log("nx: " + nx)
+    let column = chunk.data[nx];
+    if (column === undefined)
+        return;
+    let ny = y % ChunkSize;
+    // console.log("ny: " + ny)
+    // console.log("return: " + column[ny])
+    return column[ny];
 }
 
 function getID(byte1, byte2, byte3, byte4): number{
@@ -457,7 +757,7 @@ function getTank(type) {
     tank.corp.pivot.set(32, 32);
     tank.tower.pivot.set(32, 32);
 
-    world.addChild(tank.body);
+    worldObjectLayer.addChild(tank.body);
 
     tank.move = function (speed) {
         let x = speed * Math.sin(-this.body.rotation);
@@ -529,7 +829,7 @@ function getAmmo(iD, tipe, posX, posY, dir){
         ammo.sprite.pivot.set(16, 16);
     else
         ammo.sprite.pivot.set(16, 4);
-    world.addChild(ammo.sprite);
+    worldObjectLayer.addChild(ammo.sprite);
 
 
     ammo.move = (radians: number): void => {
@@ -638,7 +938,7 @@ function ammoUpdate(ammo, index, ar) {
             }
         }
         if (ammo.live < 1) {
-            world.removeChild(ammo.sprite);
+            worldObjectLayer.removeChild(ammo.sprite);
             delete ar[index];
             ar[index] = undefined;
         }
@@ -661,7 +961,7 @@ function getBox(type) {
     box.body.addChild(box.box);
 
 
-    world.addChild(box.body);
+    worldObjectLayer.addChild(box.body);
 
     return box;
 }
@@ -683,7 +983,7 @@ function boxUpdate(box, index, ar) {
             box.live -= deltaTime;
         }
         if (box.live < 1) {
-            world.removeChild(box.body);
+            worldObjectLayer.removeChild(box.body);
             particles.push(getParticle(99, box.body.x, box.body.y));
             particles.push(getParticle(99, box.body.x, box.body.y));
             particles.push(getParticle(99, box.body.x, box.body.y));
@@ -719,7 +1019,7 @@ function getParticle(tipe, posX, posY){
     ammo.sprite.y = posY;
     ammo.sprite.rotation = Math.random()*Math.PI*2;
     ammo.sprite.pivot.set(16, 16);
-    world.addChild(ammo.sprite);
+    worldObjectLayer.addChild(ammo.sprite);
 
     if(tipe === 99){
         ammo.live = 1500;
@@ -749,7 +1049,7 @@ function particleUpdate(ammo, index, ar) {
             ammo.live -= 1;
         }
         if (ammo.live < 1) {
-            world.removeChild(ammo.sprite);
+            worldObjectLayer.removeChild(ammo.sprite);
             delete ar[index];
             ar[index] = undefined;
         }
